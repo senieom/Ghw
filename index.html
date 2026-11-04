@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4285f4">
+<title>광혜원고 시내버스 시간표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#cde8f6;--card:#fff;--ink:#14213d;--sub:#4b5d7a;--blue:#4285f4;--blue-ink:#fff;--line:#b6d6ea;--dim:#8da3ba;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a2b;--card:#182638;--ink:#eaf2fb;--sub:#9db2c9;--blue:#5b9bff;--blue-ink:#0b1626;--line:#26384f;--dim:#5f7590}}
+:root[data-theme="dark"]{--bg:#0f1a2b;--card:#182638;--ink:#eaf2fb;--sub:#9db2c9;--blue:#5b9bff;--blue-ink:#0b1626;--line:#26384f;--dim:#5f7590}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.5}
+main{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+h1{font-weight:900;font-size:30px;line-height:1.2;margin:8px 0 4px;letter-spacing:-.02em}
+.sub{color:var(--sub);font-size:14px;margin:0 0 18px}
+.tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;gap:4px;margin-bottom:14px}
+.tabs button{flex:1;border:0;background:none;color:var(--sub);font:inherit;font-weight:500;font-size:16px;padding:11px 0;border-radius:10px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--blue);color:var(--blue-ink);font-weight:900}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.hero{background:var(--blue);color:var(--blue-ink);border-radius:22px;padding:22px 20px;margin-bottom:18px}
+.hero .lab{font-size:14px;opacity:.9}
+.hero .big{font-weight:900;font-size:56px;line-height:1.05;letter-spacing:-.03em;margin:6px 0;font-variant-numeric:tabular-nums}
+.hero .big small{font-size:22px;font-weight:500;letter-spacing:0;margin-left:2px}
+.hero .route{font-size:17px;font-weight:500}
+.hero.off .big{font-size:30px}
+.list{background:var(--card);border-radius:18px;overflow:hidden}
+.row{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:14px 18px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .r{font-weight:500;font-size:16px;display:flex;align-items:center}
+.row .t{font-weight:900;font-size:24px;text-align:right;font-variant-numeric:tabular-nums}
+.row .a{color:var(--sub);font-size:13px}
+.row .s{color:var(--sub);font-size:13px;text-align:right}
+.row.past{opacity:.45}
+.row.next{box-shadow:inset 5px 0 0 var(--blue);background:color-mix(in srgb,var(--blue) 10%,var(--card))}
+.row.next .s{color:var(--blue);font-weight:900}
+.note{color:var(--sub);font-size:13px;margin:16px 4px 0}
+.banner{background:var(--card);border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:14px;color:var(--sub)}
+.bar{margin-bottom:14px}
+.chip{border:1.5px solid var(--blue);background:none;color:var(--blue);font:inherit;font-weight:500;font-size:14px;padding:7px 14px;border-radius:999px;cursor:pointer}
+.chip.on{background:var(--blue);color:var(--blue-ink)}
+.fav{border:0;background:none;font-size:26px;line-height:1;padding:0 10px 0 0;cursor:pointer;color:var(--dim)}
+.fav.on{color:#f5b301}
+</style>
+</head>
+<body>
+<main>
+  <h1>광혜원고<br>시내버스</h1>
+  <p class="sub">평일 기준 운행 시간표</p>
+  <div id="banner"></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-go" aria-selected="true">등교</button>
+    <button role="tab" id="tab-back" aria-selected="false">하교</button>
+  </div>
+  <div class="bar"><button class="chip" id="onlyfav" aria-pressed="false">★ 즐겨찾기만 보기</button></div>
+  <section class="hero" id="hero" aria-live="polite"></section>
+  <div class="list" id="list"></div>
+  <p class="note">※ 배차 운행 시간은 교통 상황에 따라 변동될 수 있습니다.</p>
+</main>
+<script>
+var BUSES=[
+ {d:"go",f:"진천",t:"광혜원고",dep:"07:10",arr:"08:00"},
+ {d:"go",f:"진천",t:"광혜원고",dep:"07:30",arr:"08:20"},
+ {d:"go",f:"대소",t:"광혜원고",dep:"07:50",arr:"08:20"},
+ {d:"back",f:"광혜원고",t:"진천",dep:"16:30",arr:"17:30"},
+ {d:"back",f:"광혜원고",t:"대소",dep:"16:40",arr:"17:20"},
+ {d:"back",f:"광혜원고",t:"대소",dep:"17:35",arr:"18:15"}
+];
+function mins(s){var p=s.split(":");return +p[0]*60+ +p[1];}
+var tab=(new Date().getHours()<13)?"go":"back";
+var favs=[],only=false,lastHtml="";
+try{favs=JSON.parse(localStorage.getItem("favs")||"[]");only=localStorage.getItem("onlyfav")==="1";}catch(e){}
+function save(){try{localStorage.setItem("favs",JSON.stringify(favs));localStorage.setItem("onlyfav",only?"1":"0");}catch(e){}}
+function key(b){return b.f+"-"+b.t;}
+var $=function(id){return document.getElementById(id);};
+function setTab(t){tab=t;$("tab-go").setAttribute("aria-selected",t==="go");$("tab-back").setAttribute("aria-selected",t==="back");render();}
+$("tab-go").onclick=function(){setTab("go");};
+$("tab-back").onclick=function(){setTab("back");};
+$("onlyfav").onclick=function(){only=!only;save();lastHtml="";render();};
+$("list").onclick=function(e){var t=e.target.closest?e.target.closest(".fav"):null;if(!t)return;var k=t.getAttribute("data-k"),i=favs.indexOf(k);if(i>-1)favs.splice(i,1);else favs.push(k);save();render();};
+function render(){
+  var n=new Date(),day=n.getDay(),weekend=(day===0||day===6);
+  var nowSec=n.getHours()*3600+n.getMinutes()*60+n.getSeconds();
+  var all=BUSES.filter(function(b){return b.d===tab;}).sort(function(a,b){return mins(a.dep)-mins(b.dep);});
+  var hasFav=all.some(function(b){return favs.indexOf(key(b))>-1;});
+  var list=(only&&hasFav)?all.filter(function(b){return favs.indexOf(key(b))>-1;}):all;
+  var next=null;
+  if(!weekend){for(var i=0;i<list.length;i++){if(mins(list[i].dep)*60>nowSec){next=list[i];break;}}}
+  $("banner").innerHTML=(weekend?'<div class="banner">오늘은 주말이에요. 아래는 평일 시간표입니다.</div>':"")+((only&&!hasFav)?'<div class="banner">즐겨찾기한 노선이 없어서 전체를 보여 드려요. 노선 옆 ☆를 눌러 추가하세요.</div>':"");
+  var h=$("hero");
+  if(next){
+    var left=mins(next.dep)*60-nowSec,m=Math.floor(left/60),s=left%60;
+    var big=m>=60?(Math.floor(m/60)+'<small>시간</small> '+(m%60)+'<small>분</small>'):(m+'<small>분</small> '+(s<10?"0":"")+s+'<small>초</small>');
+    h.className="hero";
+    h.innerHTML='<div class="lab">다음 버스 출발까지</div><div class="big">'+big+'</div><div class="route">'+next.f+' → '+next.t+' · '+next.dep+' 출발</div>';
+  }else{
+    var first=list[0];
+    h.className="hero off";
+    h.innerHTML='<div class="lab">'+(weekend?"다음 운행":"오늘 운행이 끝났어요")+'</div><div class="big">'+(weekend?"월요일":"내일")+' '+first.dep+'</div><div class="route">'+first.f+' → '+first.t+'</div>';
+  }
+  var html=list.map(function(b){
+    var past=!weekend&&mins(b.dep)*60<=nowSec;
+    var isNext=next===b;
+    var fav=favs.indexOf(key(b))>-1;
+    return '<div class="row'+(past?" past":"")+(isNext?" next":"")+'"><div class="r"><button class="fav'+(fav?" on":"")+'" data-k="'+key(b)+'" aria-label="즐겨찾기" aria-pressed="'+fav+'">'+(fav?"★":"☆")+'</button>'+b.f+' → '+b.t+'</div><div class="t">'+b.dep+'</div><div class="a">'+b.arr+' 도착</div><div class="s">'+(isNext?"다음 버스":(past?"출발함":""))+'</div></div>';
+  }).join("");
+  if(html!==lastHtml){$("list").innerHTML=html;lastHtml=html;}
+  $("onlyfav").setAttribute("aria-pressed",only);
+  $("onlyfav").className="chip"+(only?" on":"");
+}
+render();setInterval(render,1000);
+</script>
+</body>
+</html>
